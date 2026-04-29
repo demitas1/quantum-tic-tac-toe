@@ -19,7 +19,7 @@
 
 ### 実装順序
 
-#### 1-1. `src/engine/types.ts`
+#### 1-1. `src/engine/types.ts` ✅ 完了
 
 全型定義を実装する。Q1・Q2 が解決してから着手すること。
 
@@ -28,14 +28,14 @@
 - `PlaceMove`, `CollapseMove`, `Move`
 - `KifuEntry`
 
-#### 1-2. `src/engine/GameEngine.ts`
+#### 1-2. `src/engine/GameEngine.ts` ✅ 完了
 
 抽象インターフェースを定義する。
 
 - `getWinner()` は削除済み。勝者は `BoardState.winner` で参照する
 - `toKifuEntry` は `applyMove` 直後に呼び出す（スナップショット = applyMove後の状態）
 
-#### 1-3. `src/engine/quantum-tictactoe/entanglement.ts`
+#### 1-3. `src/engine/quantum-tictactoe/entanglement.ts` ✅ 完了
 
 graphology を使ったもつれネットワーク管理。
 
@@ -48,6 +48,13 @@ export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[];
 - ノード: マスインデックス（0〜8）
 - エッジ: 1手につき1本、`moveIndex` をエッジ属性として持つ
 - サイクル検出は graphology の `hasCycle` またはDFSで実装する
+
+**実装メモ**
+
+- `detectCycle` は**エッジキーで親エッジを追跡する DFS** で実装。ノードキーで親を追跡すると多重辺（同じ2マスを2手で接続した場合）を誤ってスキップしてしまうため、エッジキーを使う必要がある
+- サイクル検出時は `path.slice(cycleStart)` でサイクルを構成するノードのみを抽出して返す（起点より手前のパスは含まない）
+- `getEntangledCells` は graphology の `neighbors()` を使用。多重辺があっても重複なく隣接ノードを返す
+- グラフは呼び出し側（`QuantumTTTEngine`）が `new Graph({ type: 'undirected' })` で生成して渡す
 
 #### 1-4. `src/engine/quantum-tictactoe/victory.ts`
 
