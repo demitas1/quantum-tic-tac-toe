@@ -176,7 +176,7 @@ export interface KifuEntry {
   player: Player;
   move: Move;
   snapshot: BoardState;
-  timestamp: string;  // ISO8601
+  timestamp: number;  // Unix milliseconds (Date.now())
 }
 ```
 
@@ -230,7 +230,7 @@ export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[];
       "player": "X",
       "move": { "type": "place", "cells": [0, 4] },
       "snapshot": { ... },
-      "timestamp": "2026-04-27T10:00:05Z"
+      "timestamp": 1745751605000
     }
   ]
 }

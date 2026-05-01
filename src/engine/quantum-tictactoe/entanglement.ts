@@ -14,7 +14,17 @@ export function addEntanglement(
   graph.addEdge(n1, n2, { moveIndex });
 }
 
-function dfsFind(
+export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[] {
+  const key = String(cell);
+  if (!graph.hasNode(key)) return [];
+  return graph.neighbors(key).map(n => parseInt(n) as CellIndex);
+}
+
+// Separated from detectCycle because the entanglement graph may be disconnected
+// (isolated nodes exist before they are linked by a move). A single DFS from one
+// root cannot reach all components, so detectCycle drives the outer loop while
+// dfsFindCycle handles the recursive traversal from a given starting node.
+function dfsFindCycle(
   graph: Graph,
   node: string,
   parentEdge: string | null,
@@ -35,7 +45,7 @@ function dfsFind(
       return path.slice(path.indexOf(neighbor));
     }
 
-    const result = dfsFind(graph, neighbor, edgeKey, visited, path);
+    const result = dfsFindCycle(graph, neighbor, edgeKey, visited, path);
     if (result) return result;
   }
 
@@ -48,15 +58,9 @@ export function detectCycle(graph: Graph): CellIndex[] | null {
 
   for (const node of graph.nodes()) {
     if (visited.has(node)) continue;
-    const result = dfsFind(graph, node, null, visited, []);
+    const result = dfsFindCycle(graph, node, null, visited, []);
     if (result) return result.map(n => parseInt(n) as CellIndex);
   }
 
   return null;
-}
-
-export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[] {
-  const key = String(cell);
-  if (!graph.hasNode(key)) return [];
-  return graph.neighbors(key).map(n => parseInt(n) as CellIndex);
 }

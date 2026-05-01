@@ -39,5 +39,5 @@ export interface KifuEntry {
   player: Player;
   move: Move;
   snapshot: BoardState;
-  timestamp: string; // ISO8601
+  timestamp: number; // Unix milliseconds (Date.now())
 }
