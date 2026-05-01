@@ -56,7 +56,7 @@ export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[];
 - `getEntangledCells` は graphology の `neighbors()` を使用。多重辺があっても重複なく隣接ノードを返す
 - グラフは呼び出し側（`QuantumTTTEngine`）が `new Graph({ type: 'undirected' })` で生成して渡す
 
-#### 1-4. `src/engine/quantum-tictactoe/victory.ts`
+#### 1-4. `src/engine/quantum-tictactoe/victory.ts` ✅ 完了
 
 勝利判定ロジック。collapse 完了後に呼び出される前提で実装する。
 
@@ -67,7 +67,13 @@ export function getEntangledCells(graph: Graph, cell: CellIndex): CellIndex[];
 export function checkVictory(cells: Cell[]): Player | 'draw' | null;
 ```
 
-#### 1-5. `src/engine/quantum-tictactoe/collapse.ts`
+**実装メモ**
+
+- 各ラインの「決着 moveIndex」= ライン内の最大 moveIndex（最後に置かれたマーク）
+- プレイヤーごとに複数勝利ラインがある場合は決着 moveIndex 最小のラインを採用
+- 確定マスの moveIndex は `quantumMarks.find(m => m.player === confirmedBy).moveIndex` で取得（collapse.ts との契約）
+
+#### 1-5. `src/engine/quantum-tictactoe/collapse.ts` ✅ 完了
 
 収束処理。**再帰禁止、BFS/DFSキューで実装すること。**
 
@@ -77,6 +83,61 @@ export function checkVictory(cells: Cell[]): Player | 'draw' | null;
 ```typescript
 export function resolveCollapse(cells: Cell[], cycleNodes: CellIndex[], choice: CollapseMove): Cell[];
 ```
+
+**実装メモ**
+
+BFS の各ステップ（セル `C` をマーク `M` で確定する場合）:
+
+1. `C.confirmedBy = M.player` に設定
+2. `M.pairCell` から同じ `moveIndex` のマークを除去（`M` はそこに land しないため）。除去後 1 マークのみになれば enqueue
+3. `C` 内の rejected マーク（`M` 以外）は各自の `pairCell` に land する → 対応マークを enqueue
+4. `C.quantumMarks = [M]`（victory.ts との契約）
+
+同一セルが複数回 enqueue されることがある。デキュー時に `confirmedBy !== null` でスキップ。
+
+---
+
+**3パターンのシミュレーション**
+
+##### ケース1：シンプルな3マスサイクル（A-B-C-A）
+
+CollapseMove `{targetCell=A, pairCell=B}` → A を X₁ で確定
+
+| ステップ | 操作 | 状態 |
+|---|---|---|
+| A を X₁ で確定 | B から X₁ 除去 → enqueue(B, O₂); C へ X₃ cascade → enqueue(C, X₃) | A: ✓X |
+| B を O₂ で確定 | C から O₂ 除去 → enqueue(C, X₃)（重複） | B: ✓O |
+| C を X₃ で確定 | A は確定済みスキップ | C: ✓X |
+| C（重複）スキップ | confirmedBy !== null | — |
+
+##### ケース2：2サイクルが1マスを共有するケース
+
+**有効なゲームプレイでは発生しない。**
+
+理由: 1手（エッジ追加）で生成されるサイクルは追加エッジの両端点を必ず含むため、1手で生成される2サイクルは最低2ノードを共有する。さらに `QuantumTTTEngine` は collapse 後に確定済みノードをエンタングルメントグラフから削除するため、グラフは常に森（サイクルなし）の状態を維持する。
+
+**→ QuantumTTTEngine（1-6）の必須要件：collapse 後に確定済みノードをグラフから削除する**
+
+##### ケース3：サイクルに枝があるケース（A に D への枝）
+
+初期状態:
+```
+A: [X₁(pair=D), O₂(pair=B), O₄(pair=C)]   ← D は枝先（サイクル外）
+B: [O₂(pair=A), X₃(pair=C)]
+C: [X₃(pair=B), O₄(pair=A)]
+D: [X₁(pair=A)]
+```
+
+CollapseMove `{targetCell=A, pairCell=B}` → A を O₂ で確定
+
+| ステップ | 操作 | 状態 |
+|---|---|---|
+| A を O₂ で確定 | B から O₂ 除去 → enqueue(B, X₃); **枝 X₁ rejected → enqueue(D, X₁)**; O₄ rejected → enqueue(C, O₄) | A: ✓O |
+| B を X₃ で確定 | C から X₃ 除去 → enqueue(C, O₄)（重複） | B: ✓X |
+| **D を X₁ で確定** | A は確定済みスキップ。他マークなし | **D: ✓X**（枝先が正しく伝播） |
+| C を O₄ で確定 | A は確定済みスキップ | C: ✓O |
+
+枝マークは Step3（rejected cascade）により自然に伝播する。アルゴリズムの特別対応は不要。
 
 #### 1-6. `src/engine/quantum-tictactoe/QuantumTTTEngine.ts`
 
