@@ -139,7 +139,7 @@ CollapseMove `{targetCell=A, pairCell=B}` → A を O₂ で確定
 
 枝マークは Step3（rejected cascade）により自然に伝播する。アルゴリズムの特別対応は不要。
 
-#### 1-6. `src/engine/quantum-tictactoe/QuantumTTTEngine.ts`
+#### 1-6. `src/engine/quantum-tictactoe/QuantumTTTEngine.ts` ✅ 完了
 
 `GameEngine` インターフェースの実装。上記モジュールを組み合わせてゲームフローを制御する。
 
@@ -147,16 +147,24 @@ CollapseMove `{targetCell=A, pairCell=B}` → A を O₂ で確定
 - `applyMove(CollapseMove)`: 収束処理 → 勝利判定 → フェーズ更新
 - `getLegalMoves()`: フェーズに応じて `PlaceMove[]` または `CollapseMove[]` を返す
 
-#### 1-7. テスト
+**実装メモ**
+
+- エンタングルメントグラフは `new Graph({ type: 'undirected', multi: true })` で生成。`multi: true` が必須（同一ペアを2手で接続すると即座にサイクルが生成されるため）
+- `CollapseMove` 後は `currentPlayer` を切り替えない。サイクル生成（X のターン末）→ 相手（O）が収束選択 → O がそのまま次の PlaceMove を行う、という順序が元論文の規則に従う
+- `graph.dropNode()` でノードと全隣接エッジを同時に削除。collapse 後の確定済みノード削除により、グラフは常に森（サイクルなし）の状態を維持する
+- `toKifuEntry` 用に `lastAppliedPlayer` を `applyMove` 先頭で記録（applyMove 後は currentPlayer が切り替わっているため）
+- `moveIndex` = `state.moveCount`（0-indexed）。PlaceMove ごとにインクリメント。CollapseMove ではインクリメントしない
+
+#### 1-7. テスト ✅ 完了（42 tests passed）
 
 各モジュールに対して `*.test.ts` を同ディレクトリに配置する。
 
 | テストファイル | 主なケース |
 |---|---|
-| `entanglement.test.ts` | エッジ追加、サイクルなし、サイクルあり |
-| `victory.test.ts` | X勝ち、O勝ち、引き分け、両者同時成立 |
-| `collapse.test.ts` | 単純収束、2連鎖、3連鎖 |
-| `QuantumTTTEngine.test.ts` | 正常ゲームフロー、不正手の拒否 |
+| `entanglement.test.ts` | エッジ追加、サイクルなし、3ノードサイクル、非連結グラフ、多重辺サイクル、隣接取得 |
+| `victory.test.ts` | X勝ち（行・列・斜め）、O勝ち、ライン未完成、引き分け、両者同時成立（moveIndex比較） |
+| `collapse.test.ts` | 3ノードサイクル（2パターン）、枝ありサイクル（枝先への伝播確認）、入力不変性 |
+| `QuantumTTTEngine.test.ts` | 初期状態、PlaceMove、サイクル検出・フェーズ遷移、非勝利収束、勝利収束（2パターン）、棋譜エントリ、不正手エラー |
 
 ```bash
 npm run test -- --run src/engine/
