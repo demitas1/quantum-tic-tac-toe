@@ -1,16 +1,12 @@
 import { QuantumTTTEngine } from './QuantumTTTEngine';
-import type { CollapseMove, PlaceMove } from '../types';
+import type { CellIndex, CollapseMove, PlaceMove } from '../types';
 
-function place(a: number, b: number): PlaceMove {
-  return { type: 'place', cells: [a, b] as [0,1,2,3,4,5,6,7,8, 0,1,2,3,4,5,6,7,8] } as PlaceMove;
+function place(a: CellIndex, b: CellIndex): PlaceMove {
+  return { type: 'place', cells: [a, b] };
 }
 
-function collapse(targetCell: number, pairCell: number): CollapseMove {
-  return {
-    type: 'collapse',
-    targetCell: targetCell as CollapseMove['targetCell'],
-    pairCell: pairCell as CollapseMove['pairCell'],
-  };
+function collapse(targetCell: CellIndex, pairCell: CellIndex): CollapseMove {
+  return { type: 'collapse', targetCell, pairCell };
 }
 
 // Cycle on cells 0,3,6 (column 0). All marks are X → collapse always yields X wins.
