@@ -3,7 +3,7 @@ import type { Cell, CellIndex, CollapseMove, QuantumMark } from '../types';
 // cycleNodes is available for validation in QuantumTTTEngine; not used in BFS itself.
 export function resolveCollapse(
   cells: Cell[],
-  cycleNodes: CellIndex[],
+  _cycleNodes: CellIndex[],
   choice: CollapseMove,
 ): Cell[] {
   const newCells: Cell[] = cells.map(c => ({
